@@ -1,0 +1,5 @@
+{
+  "name": "Pivot",
+  "description": "A web application for business financial management that allows recording sales, purchases, and expenses, with automatic calculation of profits and available capital, all synchronized in real-time with Firebase.",
+  "requestFramePermissions": []
+}

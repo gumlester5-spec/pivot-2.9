@@ -1,0 +1,17 @@
+
+{
+  "name": "Pivot",
+  "short_name": "Pivot",
+  "description": "A web application for business financial management that allows recording sales, purchases, and expenses, with automatic calculation of profits and available capital, all synchronized in real-time with Firebase.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
