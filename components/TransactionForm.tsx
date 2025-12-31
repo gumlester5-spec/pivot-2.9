@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Transaction } from '../types';
 import { TransactionType } from '../types';
+import { useNotification } from '../context/NotificationContext';
 
 interface TransactionFormProps {
   addTransaction: (transaction: Omit<Transaction, 'id' | 'date'>) => Promise<void>;
@@ -19,34 +20,80 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, editT
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isEditing = !!transactionToEdit;
 
+  const [isCredit, setIsCredit] = useState(false);
+  const [clientName, setClientName] = useState('');
+
+  const [isExtraIncome, setIsExtraIncome] = useState(false);
+  const [extraIncomeType, setExtraIncomeType] = useState<'capital' | 'profit'>('capital');
+
   useEffect(() => {
     if (isEditing) {
       setAmount(String(transactionToEdit.amount));
       setDescription(transactionToEdit.description);
+      setIsCredit(!!transactionToEdit.isCredit);
+      setClientName(transactionToEdit.clientName || '');
+      setIsExtraIncome(!!transactionToEdit.isExtraIncome);
+      setExtraIncomeType(transactionToEdit.extraIncomeType || 'capital');
     }
   }, [transactionToEdit, isEditing]);
 
 
+  const { showNotification } = useNotification();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsedAmount = parseFloat(amount);
+
+    // Credit Sale/Purchase Validation
+    if ((initialType === TransactionType.Sale || initialType === TransactionType.Purchase) && isCredit && !clientName.trim()) {
+      showNotification(`El nombre del ${initialType === TransactionType.Sale ? 'cliente' : 'proveedor'} es obligatorio.`, "error");
+      return;
+    }
+
     if (!parsedAmount || parsedAmount <= 0 || !description.trim()) {
       setError('Por favor, ingrese un monto y descripción válidos.');
       return;
     }
-    
+
     setError('');
     setIsSubmitting(true);
 
     try {
       if (isEditing && editTransaction) {
-        await editTransaction({
-            ...transactionToEdit,
-            amount: parsedAmount,
-            description,
-        });
+        const updateData: any = {
+          ...transactionToEdit,
+          amount: parsedAmount,
+          description,
+          type: initialType,
+          type: initialType,
+          isCredit: (initialType === TransactionType.Sale || initialType === TransactionType.Purchase) ? isCredit : false,
+          isExtraIncome: initialType === TransactionType.Sale ? isExtraIncome : false,
+          extraIncomeType: (initialType === TransactionType.Sale && isExtraIncome) ? extraIncomeType : undefined,
+        };
+
+        if ((initialType === TransactionType.Sale || initialType === TransactionType.Purchase) && isCredit) {
+          updateData.clientName = clientName;
+        }
+
+        await editTransaction(updateData);
       } else {
-        await addTransaction({ amount: parsedAmount, description, type: initialType });
+        const transactionData: any = {
+          amount: parsedAmount,
+          description,
+          type: initialType,
+          type: initialType,
+          isCredit: (initialType === TransactionType.Sale || initialType === TransactionType.Purchase) ? isCredit : false,
+          isExtraIncome: initialType === TransactionType.Sale ? isExtraIncome : false,
+          extraIncomeType: (initialType === TransactionType.Sale && isExtraIncome) ? extraIncomeType : undefined,
+        };
+
+        if ((initialType === TransactionType.Sale || initialType === TransactionType.Purchase) && isCredit) {
+          transactionData.clientName = clientName;
+          transactionData.isPaid = false;
+          transactionData.amountPaid = 0;
+        }
+
+        await addTransaction(transactionData);
       }
       setAmount('');
       setDescription('');
@@ -54,16 +101,16 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, editT
     } catch (e) {
       // Error is handled globally by the notification context
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
-  
+
   const getDynamicHint = () => {
     const parsedAmount = parseFloat(amount) || 0;
     if (initialType === TransactionType.Sale && parsedAmount > 0) {
-        const profit = (parsedAmount * (profitPercentage / 100)).toFixed(2);
-        const capital = (parsedAmount - parseFloat(profit)).toFixed(2);
-        return `Ganancia: Q${profit} | Capital: Q${capital}`;
+      const profit = (parsedAmount * (profitPercentage / 100)).toFixed(2);
+      const capital = (parsedAmount - parseFloat(profit)).toFixed(2);
+      return `Ganancia: Q${profit} | Capital: Q${capital}`;
     }
     if (initialType === TransactionType.Purchase) return "Esto se deducirá del Capital.";
     if (initialType === TransactionType.Expense) return "Esto se deducirá de las Ganancias.";
@@ -103,6 +150,92 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, editT
           disabled={isSubmitting}
         />
       </div>
+
+      {(initialType === TransactionType.Sale || initialType === TransactionType.Purchase) && !isExtraIncome && (
+        <div className="flex items-center mb-4">
+          <input
+            id="isCredit"
+            type="checkbox"
+            checked={isCredit}
+            onChange={(e) => setIsCredit(e.target.checked)}
+            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+            disabled={isSubmitting}
+          />
+          <label htmlFor="isCredit" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
+            {initialType === TransactionType.Sale ? 'Venta a crédito' : 'Compra a crédito'}
+          </label>
+        </div>
+      )}
+
+      {initialType === TransactionType.Sale && !isCredit && (
+        <div className="mb-4 space-y-3">
+          <div className="flex items-center">
+            <input
+              id="isExtraIncome"
+              type="checkbox"
+              checked={isExtraIncome}
+              onChange={(e) => setIsExtraIncome(e.target.checked)}
+              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+              disabled={isSubmitting}
+            />
+            <label htmlFor="isExtraIncome" className="ml-2 block text-sm text-gray-900 dark:text-gray-300 font-medium">
+              Ingreso Extra (100% Capital o Ganancia)
+            </label>
+          </div>
+
+          {isExtraIncome && (
+            <div className="pl-6 space-y-2">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Destino de los fondos:</p>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center">
+                  <input
+                    id="extra-capital"
+                    name="extraIncomeType"
+                    type="radio"
+                    checked={extraIncomeType === 'capital'}
+                    onChange={() => setExtraIncomeType('capital')}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                  />
+                  <label htmlFor="extra-capital" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                    Capital Base
+                  </label>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    id="extra-profit"
+                    name="extraIncomeType"
+                    type="radio"
+                    checked={extraIncomeType === 'profit'}
+                    onChange={() => setExtraIncomeType('profit')}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                  />
+                  <label htmlFor="extra-profit" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                    Ganancia Neta
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {isCredit && (
+        <div>
+          <label htmlFor="clientName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            {initialType === TransactionType.Sale ? 'Nombre del Cliente' : 'Nombre del Proveedor'}
+          </label>
+          <input
+            type="text"
+            id="clientName"
+            value={clientName}
+            onChange={(e) => setClientName(e.target.value)}
+            className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md"
+            placeholder="Ej: Juan Pérez"
+            disabled={isSubmitting}
+          />
+        </div>
+      )}
+
       {error && <p className="text-sm text-red-500">{error}</p>}
       <button
         type="submit"

@@ -7,6 +7,8 @@ import {
   editTransactionAtomic,
   deleteTransactionAtomic,
   updateSettingsInDB,
+  addPaymentAtomic,
+  recalculateSummary
 } from '../services/firebase';
 import type { Transaction, FinancialSummary, Settings } from '../types';
 import { TransactionType } from '../types';
@@ -122,5 +124,30 @@ export const useFinancialData = (userId: string | null) => {
     }
   }, [showNotification, userId]);
 
-  return { transactions, summary, settings, addTransaction, editTransaction, deleteTransaction, updateSettings, loading, error };
+  const addPayment = useCallback(async (transactionId: string, amount: number, note: string) => {
+    if (!userId) return;
+    try {
+      await addPaymentAtomic(userId, transactionId, amount, note, settings.profitPercentage);
+      showNotification('Abono registrado exitosamente', 'success');
+    } catch (err: any) {
+      console.error("Failed to add payment:", err);
+      const errorMessage = err.message || "Error al registrar el abono.";
+      setError(errorMessage);
+      showNotification(errorMessage, 'error');
+      throw err;
+    }
+  }, [userId, settings.profitPercentage, showNotification]);
+
+  const refreshSummary = useCallback(async () => {
+    if (!userId) return;
+    try {
+      await recalculateSummary(userId);
+      showNotification('Datos recalculados correctamente', 'success');
+    } catch (err: any) {
+      console.error("Failed to recalculate:", err);
+      showNotification('Error al recalcular datos', 'error');
+    }
+  }, [userId, showNotification]);
+
+  return { transactions, summary, settings, addTransaction, editTransaction, deleteTransaction, updateSettings, addPayment, refreshSummary, loading, error };
 };

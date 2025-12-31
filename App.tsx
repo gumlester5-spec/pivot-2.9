@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import Dashboard from './components/Dashboard';
 import Settings from './components/Settings';
 import AddTransactionView from './components/AddTransactionView';
+import ReceivablesView from './components/ReceivablesView';
+import PayablesView from './components/PayablesView';
 import BottomNav from './components/BottomNav';
 import Header from './components/Header';
 import { useFinancialData } from './hooks/useFinancialData';
@@ -16,20 +18,22 @@ import { onAuthUserChanged } from './services/firebase';
 import type { User } from 'firebase/auth';
 
 
-export type View = 'dashboard' | 'add-sale' | 'add-purchase' | 'add-expense' | 'settings';
+export type View = 'dashboard' | 'add-sale' | 'add-purchase' | 'add-expense' | 'settings' | 'receivables' | 'payables';
 
 const AppContent: React.FC<{ user: User }> = ({ user }) => {
   const [view, setView] = useState<View>('dashboard');
-  const { 
-    summary, 
-    settings, 
-    transactions, 
+  const {
+    summary,
+    settings,
+    transactions,
     addTransaction,
     editTransaction,
-    deleteTransaction, 
+    deleteTransaction,
     updateSettings,
+    addPayment,
+    refreshSummary,
     loading,
-    error 
+    error
   } = useFinancialData(user.uid);
 
   const returnToDashboard = () => {
@@ -45,9 +49,9 @@ const AppContent: React.FC<{ user: User }> = ({ user }) => {
       );
     }
     if (error && transactions.length === 0) { // Only show big error on initial load fail
-        return <div className="text-center text-red-500">{error}</div>
+      return <div className="text-center text-red-500">{error}</div>
     }
-    
+
     const transactionViewProps = {
       transactions,
       addTransaction,
@@ -67,7 +71,11 @@ const AppContent: React.FC<{ user: User }> = ({ user }) => {
       case 'add-expense':
         return <AddTransactionView initialType={TransactionType.Expense} {...transactionViewProps} />;
       case 'settings':
-        return <Settings user={user} settings={settings} updateSettings={updateSettings} />;
+        return <Settings user={user} settings={settings} updateSettings={updateSettings} refreshSummary={refreshSummary} />;
+      case 'receivables':
+        return <ReceivablesView transactions={transactions} addPayment={addPayment} />;
+      case 'payables':
+        return <PayablesView transactions={transactions} addPayment={addPayment} />;
       default:
         return null;
     }

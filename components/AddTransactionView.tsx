@@ -21,14 +21,14 @@ const viewTitles: Record<TransactionType, string> = {
     [TransactionType.Expense]: 'Gastos',
 };
 
-const AddTransactionView: React.FC<AddTransactionViewProps> = ({ 
-    initialType, 
+const AddTransactionView: React.FC<AddTransactionViewProps> = ({
+    initialType,
     transactions,
-    addTransaction, 
+    addTransaction,
     editTransaction,
     deleteTransaction,
-    profitPercentage, 
-    onReturn 
+    profitPercentage,
+    onReturn
 }) => {
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -38,7 +38,7 @@ const AddTransactionView: React.FC<AddTransactionViewProps> = ({
     const filteredTransactions = useMemo(() => {
         return transactions.filter(t => t.type === initialType);
     }, [transactions, initialType]);
-    
+
     const openFormModal = (transaction: Transaction | null = null) => {
         setTransactionToEdit(transaction);
         setIsFormModalOpen(true);
@@ -53,12 +53,12 @@ const AddTransactionView: React.FC<AddTransactionViewProps> = ({
         setTransactionToDelete(transaction);
         setIsDeleteModalOpen(true);
     };
-    
+
     const closeDeleteModal = () => {
         setTransactionToDelete(null);
         setIsDeleteModalOpen(false);
     };
-    
+
     const handleDelete = async () => {
         if (transactionToDelete) {
             await deleteTransaction(transactionToDelete);
@@ -109,16 +109,14 @@ const AddTransactionView: React.FC<AddTransactionViewProps> = ({
                     </div>
                 </div>
 
-                <button onClick={onReturn} className="w-full text-center mt-4 py-2 px-4 text-sm font-medium text-gray-500 dark:text-gray-400 hover:underline">
-                    Volver al Panel Principal
-                </button>
+
             </div>
 
             {isFormModalOpen && (
-                 <div className="fixed inset-0 z-50 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4" onClick={closeFormModal}>
+                <div className="fixed inset-0 z-50 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4" onClick={closeFormModal}>
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6 animate-fade-in-scale-up" onClick={(e) => e.stopPropagation()}>
                         <h3 className="text-xl font-bold mb-4 text-gray-800 dark:text-gray-100">{transactionToEdit ? 'Editar' : 'Registrar'} {initialType}</h3>
-                        <TransactionForm 
+                        <TransactionForm
                             initialType={initialType}
                             addTransaction={addTransaction}
                             editTransaction={editTransaction}
@@ -132,7 +130,7 @@ const AddTransactionView: React.FC<AddTransactionViewProps> = ({
                     </div>
                 </div>
             )}
-            
+
             {isDeleteModalOpen && (
                 <div className="fixed inset-0 z-50 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4" onClick={closeDeleteModal}>
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6 animate-fade-in-scale-up text-center" onClick={(e) => e.stopPropagation()}>
