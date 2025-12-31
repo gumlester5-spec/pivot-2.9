@@ -4,7 +4,9 @@ const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/icon.svg',
-  '/manifest.json'
+  '/manifest.json',
+  '/pwa-192x192.png',
+  '/pwa-512x512.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -21,13 +23,13 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') {
     return;
   }
-  
+
   const isExternalResource = event.request.url.startsWith('https://esm.sh/') || event.request.url.includes('firebase');
   if (isExternalResource) {
     event.respondWith(fetch(event.request));
     return;
   }
-  
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
