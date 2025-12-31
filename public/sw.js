@@ -1,9 +1,7 @@
-
-const CACHE_NAME = 'pivot-cache-v1';
+const CACHE_NAME = 'pivot-cache-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/icon.svg',
   '/manifest.json',
   '/pwa-192x192.png',
   '/pwa-512x512.png'
@@ -24,37 +22,41 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  const isExternalResource = event.request.url.startsWith('https://esm.sh/') || event.request.url.includes('firebase');
-  if (isExternalResource) {
+  const isDatabaseCall = event.request.url.includes('firebaseio.com');
+
+  if (isDatabaseCall) {
     event.respondWith(fetch(event.request));
+    return;
+  }
+
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => {
+          return caches.match('/index.html');
+        })
+    );
     return;
   }
 
   event.respondWith(
     caches.match(event.request)
-      .then((response) => {
-        if (response) {
-          return response;
-        }
-
-        const fetchRequest = event.request.clone();
-
-        return fetch(fetchRequest).then(
-          (response) => {
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            const responseToCache = response.clone();
-
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return response;
+      .then((cachedResponse) => {
+        const fetchPromise = fetch(event.request).then((networkResponse) => {
+          if (!networkResponse || networkResponse.status !== 200 || (networkResponse.type !== 'basic' && networkResponse.type !== 'cors')) {
+            return networkResponse;
           }
-        );
+
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+
+          return networkResponse;
+        }).catch((err) => {
+        });
+
+        return cachedResponse || fetchPromise;
       })
   );
 });
