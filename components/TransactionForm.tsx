@@ -65,11 +65,13 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, editT
           amount: parsedAmount,
           description,
           type: initialType,
-          type: initialType,
           isCredit: (initialType === TransactionType.Sale || initialType === TransactionType.Purchase) ? isCredit : false,
           isExtraIncome: initialType === TransactionType.Sale ? isExtraIncome : false,
-          extraIncomeType: (initialType === TransactionType.Sale && isExtraIncome) ? extraIncomeType : undefined,
         };
+
+        if (initialType === TransactionType.Sale && isExtraIncome) {
+          updateData.extraIncomeType = extraIncomeType;
+        }
 
         if ((initialType === TransactionType.Sale || initialType === TransactionType.Purchase) && isCredit) {
           updateData.clientName = clientName;
@@ -81,11 +83,13 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, editT
           amount: parsedAmount,
           description,
           type: initialType,
-          type: initialType,
           isCredit: (initialType === TransactionType.Sale || initialType === TransactionType.Purchase) ? isCredit : false,
           isExtraIncome: initialType === TransactionType.Sale ? isExtraIncome : false,
-          extraIncomeType: (initialType === TransactionType.Sale && isExtraIncome) ? extraIncomeType : undefined,
         };
+
+        if (initialType === TransactionType.Sale && isExtraIncome) {
+          transactionData.extraIncomeType = extraIncomeType;
+        }
 
         if ((initialType === TransactionType.Sale || initialType === TransactionType.Purchase) && isCredit) {
           transactionData.clientName = clientName;

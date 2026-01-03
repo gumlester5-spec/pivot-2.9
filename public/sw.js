@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pivot-cache-v3';
+const CACHE_NAME = 'pivot-cache-v4';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -8,6 +8,9 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener('install', (event) => {
+  // Force the waiting service worker to become the active service worker.
+  self.skipWaiting();
+
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -62,6 +65,9 @@ self.addEventListener('fetch', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
+  // Tell the active service worker to take control of the page immediately.
+  event.waitUntil(self.clients.claim());
+
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
     caches.keys().then((cacheNames) => {
