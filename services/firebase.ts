@@ -280,10 +280,38 @@ export const deleteTransactionAtomic = async (userId: string, transaction: Trans
     await runTransaction(summaryRef, (currentSummary) => {
         if (!currentSummary) return currentSummary;
 
-        const impact = calculateImpact(transaction.type, transaction.amount, profitPercentage);
+        const impact = calculateImpact(
+            transaction.type,
+            transaction.amount,
+            profitPercentage,
+            transaction.isCredit,
+            transaction.isExtraIncome,
+            transaction.extraIncomeType
+        );
 
         currentSummary.availableCapital = (currentSummary.availableCapital || 0) - impact.capitalChange;
         currentSummary.accumulatedProfits = (currentSummary.accumulatedProfits || 0) - impact.profitChange;
+
+        // Revert payments impact if it was a credit transaction
+        if (transaction.isCredit && transaction.payments) {
+            const paymentsList = Array.isArray(transaction.payments) ? transaction.payments : Object.values(transaction.payments);
+
+            paymentsList.forEach((p: any) => {
+                const paymentAmount = p.amount;
+
+                if (transaction.type === TransactionType.Purchase || transaction.type === TransactionType.Expense) {
+                    // Payment on purchase/expense REDUCED capital. To revert, ADD it back.
+                    currentSummary.availableCapital += paymentAmount;
+                } else {
+                    // Payment on sale INCREASED capital and profit. To revert, SUBTRACT.
+                    const profitFromPayment = paymentAmount * (profitPercentage / 100);
+                    const capitalFromPayment = paymentAmount - profitFromPayment;
+
+                    currentSummary.availableCapital -= capitalFromPayment;
+                    currentSummary.accumulatedProfits -= profitFromPayment;
+                }
+            });
+        }
 
         return currentSummary;
     });
