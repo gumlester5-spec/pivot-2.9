@@ -5,6 +5,7 @@ import { ArrowTrendingUpIcon, ArrowTrendingDownIcon, ShoppingCartIcon, ArrowDown
 
 interface TransactionHistoryProps {
   transactions: Transaction[];
+  profitPercentage: number;
 }
 
 const TransactionIcon: React.FC<{ type: TransactionType }> = ({ type }) => {
@@ -20,7 +21,7 @@ const TransactionIcon: React.FC<{ type: TransactionType }> = ({ type }) => {
   }
 };
 
-const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactions }) => {
+const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactions, profitPercentage }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
@@ -49,16 +50,28 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactions })
   }, [transactions, searchTerm, selectedType, dateRange, amountRange]);
 
   const handleExport = () => {
-    const headers = ['ID', 'Fecha', 'Descripción', 'Tipo', 'Monto'];
+    const headers = ['ID', 'Fecha', 'Descripción', 'Tipo', 'Monto', 'Capital', 'Ganancia'];
     const csvContent = [
       headers.join(','),
-      ...filteredTransactions.map(t => [
-        t.id,
-        new Date(t.date).toLocaleString('es-GT').replace(',', ''),
-        `"${t.description.replace(/"/g, '""')}"`,
-        t.type,
-        t.amount.toString()
-      ].join(','))
+      ...filteredTransactions.map(t => {
+        let capital = '';
+        let profit = '';
+        if (t.type === TransactionType.Sale) {
+          const details = getSaleDetails(t);
+          capital = details.capital.toFixed(2);
+          profit = details.profit.toFixed(2);
+        }
+
+        return [
+          t.id,
+          new Date(t.date).toLocaleString('es-GT').replace(',', ''),
+          `"${t.description.replace(/"/g, '""')}"`,
+          t.type,
+          t.amount.toString(),
+          capital,
+          profit
+        ].join(',')
+      })
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -69,6 +82,24 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactions })
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const getSaleDetails = (t: Transaction) => {
+    let capital = 0;
+    let profit = 0;
+
+    if (t.isExtraIncome && t.extraIncomeType) {
+      if (t.extraIncomeType === 'capital') {
+        capital = t.amount;
+      } else if (t.extraIncomeType === 'profit') {
+        profit = t.amount;
+      }
+    } else {
+      profit = t.amount * (profitPercentage / 100);
+      capital = t.amount - profit;
+    }
+
+    return { capital, profit };
   };
 
   return (
@@ -163,25 +194,42 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactions })
 
       <div className="space-y-4 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
         {filteredTransactions.length > 0 ? (
-          filteredTransactions.map((t) => (
-            <div key={t.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-              <div className="flex items-center space-x-4">
-                <div className="p-2 bg-white dark:bg-gray-800 rounded-full shadow-sm">
-                  <TransactionIcon type={t.type} />
+          filteredTransactions.map((t) => {
+            const saleDetails = t.type === TransactionType.Sale ? getSaleDetails(t) : null;
+            return (
+              <div key={t.id} className="flex flex-col p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-2 bg-white dark:bg-gray-800 rounded-full shadow-sm">
+                      <TransactionIcon type={t.type} />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-800 dark:text-gray-100">{t.description}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {new Date(t.date).toLocaleString('es-GT', { dateStyle: 'medium', timeStyle: 'short' })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`font-semibold whitespace-nowrap ${t.type === TransactionType.Sale ? 'text-green-500' : 'text-red-500'
+                      }`}>
+                      {t.type === TransactionType.Sale ? '+' : '-'}Q{t.amount.toFixed(2)}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-800 dark:text-gray-100">{t.description}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {new Date(t.date).toLocaleString('es-GT', { dateStyle: 'medium', timeStyle: 'short' })}
-                  </p>
-                </div>
+                {saleDetails && (
+                  <div className="mt-2 pl-[3.25rem] flex gap-4 text-xs">
+                    <span className="text-gray-500 dark:text-gray-400">
+                      Capital: <span className="font-medium text-gray-700 dark:text-gray-300">Q{saleDetails.capital.toFixed(2)}</span>
+                    </span>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      Ganancia: <span className="font-medium text-green-600 dark:text-green-400">Q{saleDetails.profit.toFixed(2)}</span>
+                    </span>
+                  </div>
+                )}
               </div>
-              <p className={`font-semibold whitespace-nowrap ${t.type === TransactionType.Sale ? 'text-green-500' : 'text-red-500'
-                }`}>
-                {t.type === TransactionType.Sale ? '+' : '-'}Q{t.amount.toFixed(2)}
-              </p>
-            </div>
-          ))
+            )
+          })
         ) : (
           <div className="text-center py-12">
             <p className="text-gray-400 dark:text-gray-500">No hay transacciones que coincidan con los filtros.</p>

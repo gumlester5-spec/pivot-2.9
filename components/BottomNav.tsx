@@ -56,7 +56,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, setView }) => {
 
   const handleMenuClick = (view: View | string) => {
     // Navigate to the view if it is a valid view type
-    if (view === 'settings' || view === 'receivables' || view === 'payables') {
+    if (view === 'settings' || view === 'receivables' || view === 'payables' || view === 'help') {
       setView(view as View);
     } else {
       console.log(`Navigating to ${view}... (Not implemented yet)`);

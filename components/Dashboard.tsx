@@ -9,9 +9,10 @@ import { DollarSignIcon, ArrowTrendingUpIcon } from './icons';
 interface DashboardProps {
   summary: FinancialSummary;
   transactions: Transaction[];
+  profitPercentage: number;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ summary, transactions }) => {
+const Dashboard: React.FC<DashboardProps> = ({ summary, transactions, profitPercentage }) => {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -29,7 +30,7 @@ const Dashboard: React.FC<DashboardProps> = ({ summary, transactions }) => {
 
       <FinancialChart transactions={transactions} />
 
-      <TransactionHistory transactions={transactions} />
+      <TransactionHistory transactions={transactions} profitPercentage={profitPercentage} />
     </div>
   );
 };

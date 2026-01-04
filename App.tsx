@@ -16,9 +16,9 @@ import { ThemeProvider } from './context/ThemeContext';
 import Login from './components/Login';
 import { onAuthUserChanged } from './services/firebase';
 import type { User } from 'firebase/auth';
+import HelpView from './components/HelpView';
 
-
-export type View = 'dashboard' | 'add-sale' | 'add-purchase' | 'add-expense' | 'settings' | 'receivables' | 'payables';
+export type View = 'dashboard' | 'add-sale' | 'add-purchase' | 'add-expense' | 'settings' | 'receivables' | 'payables' | 'help';
 
 const AppContent: React.FC<{ user: User }> = ({ user }) => {
   const [view, setView] = useState<View>('dashboard');
@@ -63,7 +63,7 @@ const AppContent: React.FC<{ user: User }> = ({ user }) => {
 
     switch (view) {
       case 'dashboard':
-        return <Dashboard summary={summary} transactions={transactions} />;
+        return <Dashboard summary={summary} transactions={transactions} profitPercentage={settings.profitPercentage} />;
       case 'add-sale':
         return <AddTransactionView initialType={TransactionType.Sale} {...transactionViewProps} />;
       case 'add-purchase':
@@ -76,6 +76,8 @@ const AppContent: React.FC<{ user: User }> = ({ user }) => {
         return <ReceivablesView transactions={transactions} addPayment={addPayment} />;
       case 'payables':
         return <PayablesView transactions={transactions} addPayment={addPayment} />;
+      case 'help':
+        return <HelpView />;
       default:
         return null;
     }
